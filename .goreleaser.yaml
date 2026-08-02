@@ -68,12 +68,13 @@ homebrew_casks:
       name: Fabio Wakim Trentini
       email: trentas@users.noreply.github.com
     # The release binaries are unsigned, so Gatekeeper quarantines them on
-    # download. Strip the attribute at install time, or every run is blocked.
+    # download. Strip it from the whole staged path — Homebrew marks the
+    # directory as well, and that alone is enough to stall the first launch.
     hooks:
       post:
         install: |
           if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/vmstat"]
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
           end
 
 release:
