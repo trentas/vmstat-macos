@@ -6,25 +6,35 @@ before:
   hooks:
     - go mod tidy
 
+# The collector is cgo against Mach, libproc and IOKit, so darwin is the only
+# target that yields a working binary, and it must be built on a macOS host.
+# arm64 builds natively; amd64 cross-compiles through clang's -arch flag.
 builds:
-  # The collector is cgo against Mach, libproc and IOKit, so darwin is the only
-  # target that produces a working binary and it must be built on a macOS host.
-  - id: vmstat
+  - id: darwin-arm64
     binary: vmstat
+    goos: [darwin]
+    goarch: [arm64]
     env:
       - CGO_ENABLED=1
-    goos:
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    flags:
-      - -trimpath
+      - CC=clang
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+  - id: darwin-amd64
+    binary: vmstat
+    goos: [darwin]
+    goarch: [amd64]
+    env:
+      - CGO_ENABLED=1
+      - CC=clang -arch x86_64
+    flags: [-trimpath]
     ldflags:
       - -s -w -X main.version={{.Version}}
 
 archives:
   - id: vmstat
+    ids: [darwin-arm64, darwin-amd64]
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
@@ -33,6 +43,42 @@ archives:
 
 checksum:
   name_template: checksums.txt
+
+homebrew_casks:
+  - name: vmstat-macos
+    binaries: [vmstat]
+    ids: [vmstat]
+    repository:
+      owner: trentas
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    homepage: https://github.com/trentas/vmstat-macos
+    description: "Linux's vmstat for macOS, sourced from Mach, libproc and IOKit"
+    license: mit
+    commit_author:
+      name: Fabio Wakim Trentini
+      email: trentas@users.noreply.github.com
+    # The release binaries are unsigned, so Gatekeeper quarantines them on
+    # download. Strip the attribute at install time, or every run is blocked.
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/vmstat"]
+          end
+
+release:
+  draft: false
+  footer: |
+    ## Install
+
+    ```sh
+    brew install trentas/tap/vmstat-macos
+    ```
+
+    Requires macOS. The columns `buff`, `in`, `wa` and `st` have no source on
+    macOS and are reported as zero under `--linux`; see the README for why.
 
 changelog:
   sort: asc

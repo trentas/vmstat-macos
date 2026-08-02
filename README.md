@@ -117,8 +117,29 @@ its `pmstat` needs, and missing `kernel.all.intr`, `kernel.all.pswitch`,
 
 **Privileges.** Without root, `proc_pidinfo` cannot read processes owned by
 other users — typically 25-30% of them. That undercounts `r`, `b` and `cs`.
-The tool warns on stderr when this happens; run under `sudo` for full coverage,
-or pass `-q` to silence the warning.
+Every other column is unaffected. The tool warns on stderr when this happens;
+run under `sudo` for full coverage, or pass `-q` to silence the warning.
+
+Do **not** make the binary setuid root. A Go program is a poor candidate for
+it: the runtime spawns threads before `main` runs, so privileges cannot be
+dropped early and cleanly, and any bug in the cgo collector would become a
+local root escalation — a steep price for a more complete `cs` column. It is
+also pointless in the default install location, since a setuid binary sitting
+in a user-writable directory can simply be replaced.
+
+If you want full coverage without typing a password, scope a sudoers rule to
+the binary instead. Install it somewhere only root can write first:
+
+```sh
+sudo make install PREFIX=/usr/local
+sudo tee /etc/sudoers.d/vmstat >/dev/null <<'EOF'
+yourusername ALL=(root) NOPASSWD: /usr/local/bin/vmstat
+EOF
+sudo chmod 0440 /etc/sudoers.d/vmstat
+```
+
+That keeps the elevation explicit and per-invocation, and it is auditable —
+unlike a setuid bit, which grants it to every caller, always.
 
 **`free` is not what you think.** On macOS free memory routinely sits near zero
 on a perfectly healthy machine, because inactive, speculative and purgeable

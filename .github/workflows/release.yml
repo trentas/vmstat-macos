@@ -1,0 +1,36 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    name: goreleaser (macOS)
+    # Must run on macOS: the collector is cgo against Mach, libproc and IOKit,
+    # and arm64 has no cross-compiler on a Linux runner.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          # Publishes the release itself.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pushes the cask to trentas/homebrew-tap. GITHUB_TOKEN cannot write
+          # to another repository, so this must be a PAT with `repo` scope,
+          # stored as a repository secret named HOMEBREW_TAP_TOKEN.
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
