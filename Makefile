@@ -58,15 +58,21 @@ check: fmtcheck vet test ## Run every check
 run: build ## Build and run with a 1s interval
 	./bin/$(BINARY) 1
 
+# Deploy key with write access to trentas/homebrew-tap. CI supplies the key
+# contents through the HOMEBREW_TAP_DEPLOY_KEY secret; locally this is a path.
+TAP_KEY ?= $(HOME)/.ssh/vmstat_tap_deploy
+
 .PHONY: snapshot
 snapshot: ## Build release artifacts locally without publishing
-	HOMEBREW_TAP_TOKEN=unused goreleaser release --snapshot --clean --skip=publish
+	HOMEBREW_TAP_DEPLOY_KEY=unused goreleaser release --snapshot --clean --skip=publish
 
 .PHONY: release
-release: ## Publish the current tag (needs goreleaser and a gh login)
+release: ## Publish the current tag (CI does this on tag push; this is the fallback)
 	@git describe --exact-match --tags >/dev/null 2>&1 \
 		|| { echo "HEAD is not tagged; run: git tag -a vX.Y.Z -m ... && git push origin vX.Y.Z"; exit 1; }
-	GITHUB_TOKEN="$$(gh auth token)" HOMEBREW_TAP_TOKEN="$$(gh auth token)" \
+	@test -f "$(TAP_KEY)" \
+		|| { echo "missing tap deploy key at $(TAP_KEY); override with TAP_KEY=/path/to/key"; exit 1; }
+	GITHUB_TOKEN="$$(gh auth token)" HOMEBREW_TAP_DEPLOY_KEY="$(TAP_KEY)" \
 		goreleaser release --clean
 
 .PHONY: clean

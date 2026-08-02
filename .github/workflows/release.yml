@@ -30,7 +30,11 @@ jobs:
         env:
           # Publishes the release itself.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Pushes the cask to trentas/homebrew-tap. GITHUB_TOKEN cannot write
-          # to another repository, so this must be a PAT with `repo` scope,
-          # stored as a repository secret named HOMEBREW_TAP_TOKEN.
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          # Pushes the updated cask to trentas/homebrew-tap over SSH.
+          # GITHUB_TOKEN cannot write to another repository; this is a deploy
+          # key scoped write-only to the tap, so a leak cannot touch any other
+          # repo. Rotate with:
+          #   ssh-keygen -t ed25519 -f k -N ''
+          #   gh api repos/trentas/homebrew-tap/keys -f key="$(cat k.pub)" -F read_only=false
+          #   gh secret set HOMEBREW_TAP_DEPLOY_KEY --repo trentas/vmstat-macos < k
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}

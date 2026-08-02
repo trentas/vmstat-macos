@@ -180,15 +180,18 @@ make check     # gofmt, go vet, tests
 make snapshot  # build release artifacts locally, without publishing
 ```
 
-Releases run from a tag. CI publishes them on tag push, which needs a
-`HOMEBREW_TAP_TOKEN` repository secret — a PAT with `repo` scope, since
-`GITHUB_TOKEN` cannot write the cask to `trentas/homebrew-tap`. Without that
-secret, cut the release from a macOS machine instead:
+Releases are automatic: pushing a `v*` tag runs goreleaser on a macOS runner,
+which publishes the GitHub release and pushes the refreshed cask to
+`trentas/homebrew-tap`, so `brew upgrade` picks the new version up immediately.
 
 ```sh
-git tag -a v0.1.0 -m "..." && git push origin v0.1.0
-make release
+git tag -a v0.2.0 -m "..." && git push origin v0.2.0   # that is the whole release
 ```
+
+The tap push uses an SSH deploy key scoped write-only to the tap repository,
+held in the `HOMEBREW_TAP_DEPLOY_KEY` secret. `GITHUB_TOKEN` cannot write to
+another repository, and a PAT with `repo` scope would grant far more than this
+needs. `make release` is the manual fallback for a macOS host.
 
 The collector is cgo, so the Xcode command line tools are required to build.
 

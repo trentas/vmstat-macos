@@ -52,7 +52,15 @@ homebrew_casks:
       owner: trentas
       name: homebrew-tap
       branch: main
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+      # Pushed over SSH with a deploy key rather than a token: GITHUB_TOKEN
+      # cannot write to another repository, and a PAT with `repo` scope would
+      # grant access to every repo. The deploy key is write-scoped to the tap
+      # alone. private_key takes either a path or the key contents, so CI feeds
+      # it the secret directly while local releases point at a file.
+      git:
+        url: ssh://git@github.com/trentas/homebrew-tap.git
+        private_key: "{{ .Env.HOMEBREW_TAP_DEPLOY_KEY }}"
+        ssh_command: ssh -i {{ .KeyPath }} -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -F /dev/null
     homepage: https://github.com/trentas/vmstat-macos
     description: "Linux's vmstat for macOS, sourced from Mach, libproc and IOKit"
     license: mit
