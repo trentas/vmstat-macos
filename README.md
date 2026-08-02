@@ -1,6 +1,7 @@
 # vmstat-macos
 
 [![CI](https://github.com/trentas/vmstat-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/trentas/vmstat-macos/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/trentas/vmstat-macos?display_name=tag&sort=semver)](https://github.com/trentas/vmstat-macos/releases)
 [![Go Reference](https://pkg.go.dev/badge/github.com/trentas/vmstat-macos.svg)](https://pkg.go.dev/github.com/trentas/vmstat-macos)
 [![Go Report Card](https://goreportcard.com/badge/github.com/trentas/vmstat-macos)](https://goreportcard.com/report/github.com/trentas/vmstat-macos)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -173,8 +174,20 @@ Pass `--no-blocked` to skip the thread walk if you do not need the `b` column.
 
 ```sh
 make build     # build ./bin/vmstat
+make install   # install into ~/.local/bin (PREFIX=/usr/local for system-wide)
 make test      # go test ./...
 make check     # gofmt, go vet, tests
+make snapshot  # build release artifacts locally, without publishing
+```
+
+Releases run from a tag. CI publishes them on tag push, which needs a
+`HOMEBREW_TAP_TOKEN` repository secret — a PAT with `repo` scope, since
+`GITHUB_TOKEN` cannot write the cask to `trentas/homebrew-tap`. Without that
+secret, cut the release from a macOS machine instead:
+
+```sh
+git tag -a v0.1.0 -m "..." && git push origin v0.1.0
+make release
 ```
 
 The collector is cgo, so the Xcode command line tools are required to build.

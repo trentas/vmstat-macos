@@ -58,6 +58,17 @@ check: fmtcheck vet test ## Run every check
 run: build ## Build and run with a 1s interval
 	./bin/$(BINARY) 1
 
+.PHONY: snapshot
+snapshot: ## Build release artifacts locally without publishing
+	HOMEBREW_TAP_TOKEN=unused goreleaser release --snapshot --clean --skip=publish
+
+.PHONY: release
+release: ## Publish the current tag (needs goreleaser and a gh login)
+	@git describe --exact-match --tags >/dev/null 2>&1 \
+		|| { echo "HEAD is not tagged; run: git tag -a vX.Y.Z -m ... && git push origin vX.Y.Z"; exit 1; }
+	GITHUB_TOKEN="$$(gh auth token)" HOMEBREW_TAP_TOKEN="$$(gh auth token)" \
+		goreleaser release --clean
+
 .PHONY: clean
 clean: ## Remove build artifacts
 	rm -rf bin dist
