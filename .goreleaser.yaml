@@ -67,15 +67,26 @@ homebrew_casks:
     commit_author:
       name: Fabio Wakim Trentini
       email: trentas@users.noreply.github.com
-    # The release binaries are unsigned, so Gatekeeper quarantines them on
-    # download. Strip it from the whole staged path — Homebrew marks the
-    # directory as well, and that alone is enough to stall the first launch.
-    hooks:
-      post:
-        install: |
-          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
-            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
-          end
+    # Both stanzas go through custom_block because goreleaser has no field for
+    # either; it lands at the top of the cask, which Homebrew accepts.
+    #
+    # depends_on :macos — the cask only carries an on_macos block, and Homebrew
+    # validates every cask in a tap for Linux as well. Undeclared, the Linux
+    # sha256 is nil and `brew tap trentas/tap` rejects the whole tap.
+    #
+    # postflight_steps — the release binaries are unsigned, so Gatekeeper
+    # quarantines them on download. Strip it from the whole staged path:
+    # Homebrew marks the directory as well, and that alone is enough to stall
+    # the first launch. This replaces hooks.post.install, which renders the Ruby
+    # `postflight` block Homebrew deprecated; must_succeed: false keeps ignoring
+    # xattr's exit status, as the old hook did. goreleaser runs the rendered cask
+    # through its template engine once more, hence the escaped {{staged_path}}.
+    custom_block: |
+      depends_on :macos
+
+      postflight_steps do
+        run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ "{{" }}staged_path{{ "}}" }}"], must_succeed: false
+      end
 
 release:
   draft: false
