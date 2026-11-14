@@ -25,7 +25,9 @@ jobs:
 
       - uses: goreleaser/goreleaser-action@v6
         with:
-          version: "~> v2"
+          # Pinned: the rendered cask depends on what this version emits
+          # (see the depends_on note in .goreleaser.yaml).
+          version: v2.20.1
           args: release --clean
         env:
           # Publishes the release itself.
